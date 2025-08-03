@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+google-cloud-storage
+google-cloud-aiplatform
+python-multipart   # ← 이 줄 추가!
+# TODO: 인증/보안, Firestore 등 필요시 추가

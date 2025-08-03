@@ -1,0 +1,29 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', '-t',
+      'asia-northeast3-docker.pkg.dev/voicecloning-467122/voice-clone-api/voice-clone-api:latest',
+      '.'
+    ]
+    dir: 'cloudrun-api'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      'asia-northeast3-docker.pkg.dev/voicecloning-467122/voice-clone-api/voice-clone-api:latest'
+    ]
+    dir: 'cloudrun-api'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run', 'deploy', 'voice-clone-api',
+        '--image=asia-northeast3-docker.pkg.dev/voicecloning-467122/voice-clone-api/voice-clone-api:latest',
+        '--region=asia-northeast3',
+        '--service-account=cloud-run-sa@voicecloning-467122.iam.gserviceaccount.com',
+        '--set-env-vars=GCS_BUCKET_NAME=voice-storage-asia3-seungbum1,VERTEX_PROJECT=voicecloning-467122,VERTEX_LOCATION=asia-northeast3,VERTEX_JOB_NAME=xtts-job-v1',
+        '--allow-unauthenticated'
+      ]
+images:
+  - 'asia-northeast3-docker.pkg.dev/voicecloning-467122/voice-clone-api/voice-clone-api:latest'
