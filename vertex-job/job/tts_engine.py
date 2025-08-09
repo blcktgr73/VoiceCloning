@@ -10,6 +10,7 @@ from typing import Optional
 
 import soundfile as sf  # type: ignore
 import numpy as np  # type: ignore
+import librosa  # type: ignore
 
 # Coqui TTS
 from TTS.api import TTS  # type: ignore
@@ -58,41 +59,48 @@ _DEVICE = "cuda" if _USE_CUDA else "cpu"
 # 언어 기본값 (ko)
 _DEFAULT_LANGUAGE = os.getenv("TTS_LANGUAGE", "ko")
 
+# 리퍼런스 전처리 파라미터
+_REF_SR = int(os.getenv("TTS_REF_SR", "16000"))
+_REF_TRIM = os.getenv("TTS_REF_TRIM", "1") == "1"
+_REF_NORM = os.getenv("TTS_REF_NORM", "1") == "1"
+
 # 모델 전역 로드 (첫 호출 시 로드)
 _tts_model: Optional[TTS] = None
 
 def _load_model_once() -> TTS:
     global _tts_model
     if _tts_model is None:
-        # 멀티링구얼 XTTS v2 모델
         _tts_model = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", progress_bar=False).to(_DEVICE)
     return _tts_model
 
 
+def _preprocess_reference(in_path: str) -> None:
+    """Resample to mono 16kHz, trim silence, normalize, overwrite in place."""
+    wav, sr = librosa.load(in_path, sr=_REF_SR, mono=True)
+    orig_duration = wav.shape[0] / float(_REF_SR)
+    if _REF_TRIM:
+        wav, _ = librosa.effects.trim(wav, top_db=25)
+    if _REF_NORM and np.max(np.abs(wav)) > 0:
+        wav = 0.97 * wav / np.max(np.abs(wav))
+    sf.write(in_path, wav, _REF_SR)
+    print(f"[XTTS] Ref preprocessed: sr={_REF_SR}, duration={orig_duration:.2f}s -> {wav.shape[0]/_REF_SR:.2f}s")
+
+
 def synthesize(text: str, voice_data: bytes, language: Optional[str] = None) -> bytes:
-    """
-    텍스트와 참고 음성으로 합성 오디오(wav bytes)를 생성
-    Args:
-        text (str): 합성할 문장
-        voice_data (bytes): 참고 음성 wav bytes
-        language (str, optional): 언어 코드. 기본은 환경변수 TTS_LANGUAGE 또는 'ko'
-    Returns:
-        bytes: 합성된 wav 파일 바이너리
-    """
     lang = language or _DEFAULT_LANGUAGE
     tts = _load_model_once()
 
-    # 참고 음성 및 출력 임시 파일 경로
     with tempfile.TemporaryDirectory() as tmpdir:
         ref_wav_path = os.path.join(tmpdir, "ref.wav")
         out_wav_path = os.path.join(tmpdir, "out.wav")
 
-        # 참고 음성 저장
         with open(ref_wav_path, "wb") as f:
             f.write(voice_data)
 
+        # 참고 음성 전처리(모노/16k/트림/정규화)
+        _preprocess_reference(ref_wav_path)
+
         # 합성 수행 (파일 출력)
-        # 참고: XTTS v2는 speaker_wav 인자로 참조 음성 파일 경로를 받음
         tts.tts_to_file(
             text=text,
             file_path=out_wav_path,
@@ -100,6 +108,5 @@ def synthesize(text: str, voice_data: bytes, language: Optional[str] = None) -> 
             language=lang,
         )
 
-        # 결과 wav를 bytes로 읽어 반환
         with open(out_wav_path, "rb") as f:
             return f.read()

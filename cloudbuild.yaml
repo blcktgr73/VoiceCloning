@@ -22,7 +22,7 @@ steps:
         '--image=asia-northeast3-docker.pkg.dev/voicecloning-467122/voice-clone-api/voice-clone-api:latest',
         '--region=asia-northeast3',
         '--service-account=cloud-run-sa@voicecloning-467122.iam.gserviceaccount.com',
-        '--set-env-vars=GCS_BUCKET_NAME=voice-storage-asia3-seungbum1,VERTEX_PROJECT=voicecloning-467122,VERTEX_LOCATION=asia-northeast3,VERTEX_JOB_NAME=xtts-job-v1',
+        '--set-env-vars=GCS_BUCKET_NAME=voice-storage-asia3-seungbum1,VERTEX_PROJECT=voicecloning-467122,VERTEX_LOCATION=asia-northeast3,VERTEX_JOB_NAME=xtts-job-v1,VERTEX_JOB_IMAGE_URI=asia-northeast3-docker.pkg.dev/voicecloning-467122/vertex-job/vertex-job:latest,SIGNED_URL_SERVICE_ACCOUNT_EMAIL=cloud-run-sa@voicecloning-467122.iam.gserviceaccount.com,SIGNED_URL_TTL_SECONDS=3600',
         '--allow-unauthenticated'
       ]
 images:

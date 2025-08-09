@@ -1,6 +1,5 @@
 # cloudrun.yaml
 # Cloud Run 배포용 예시 YAML (gcloud CLI 또는 Cloud Build에서 사용)
-# TODO: 실제 GCP 프로젝트/버킷명/이미지명으로 교체 필요
 
 apiVersion: serving.knative.dev/v1
 kind: Service
@@ -11,10 +10,18 @@ spec:
   template:
     spec:
       containers:
-        - image: gcr.io/voicecloning-467122/voice-clone-api:latest  # TODO
+        - image: asia-northeast3-docker.pkg.dev/voicecloning-467122/voice-clone-api/voice-clone-api:latest
           env:
             - name: GCS_BUCKET_NAME
-              value: "voice-storage-asia3-seungbum1"  # TODO
+              value: "voice-storage-asia3-seungbum1"
+            - name: VERTEX_PROJECT
+              value: "voicecloning-467122"
+            - name: VERTEX_LOCATION
+              value: "asia-northeast3"
+            - name: VERTEX_JOB_NAME
+              value: "xtts-job-v1"
+            - name: VERTEX_JOB_IMAGE_URI
+              value: "asia-northeast3-docker.pkg.dev/voicecloning-467122/vertex-job/vertex-job:latest"
           ports:
             - containerPort: 8080
       timeoutSeconds: 300

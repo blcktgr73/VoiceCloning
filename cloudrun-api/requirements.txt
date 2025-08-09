@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-google-cloud-storage
+google-cloud-storage>=2.10.0
 google-cloud-aiplatform
-python-multipart   # ← 이 줄 추가!
+python-multipart
 # TODO: 인증/보안, Firestore 등 필요시 추가

@@ -5,8 +5,11 @@ Google Cloud Storage 연동 유틸리티
 import os
 from google.cloud import storage
 from google.api_core.exceptions import GoogleAPIError
+from datetime import timedelta
 
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "your-gcs-bucket")
+SIGNED_URL_TTL_SECONDS = int(os.getenv("SIGNED_URL_TTL_SECONDS", "3600"))
+SIGNED_URL_SA_EMAIL = os.getenv("SIGNED_URL_SERVICE_ACCOUNT_EMAIL")  # optional
 
 # TODO: 서비스 계정 키 파일 경로 환경변수로 지정 필요 (로컬 테스트 시)
 
@@ -32,6 +35,7 @@ def upload_to_gcs(destination_blob_name: str, file_data: bytes, content_type: st
         # TODO: 로깅 추가
         raise RuntimeError(f"GCS 업로드 실패: {e}")
 
+
 def download_from_gcs(blob_name: str) -> bytes:
     """
     GCS에서 파일 다운로드
@@ -48,3 +52,38 @@ def download_from_gcs(blob_name: str) -> bytes:
     except GoogleAPIError as e:
         # TODO: 로깅 추가
         raise RuntimeError(f"GCS 다운로드 실패: {e}")
+
+
+def exists(blob_name: str) -> bool:
+    try:
+        client = storage.Client()
+        bucket = client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(blob_name)
+        return blob.exists()
+    except Exception:
+        return False
+
+
+def generate_signed_url(blob_name: str, ttl_seconds: int | None = None) -> str:
+    """
+    지정한 객체에 대한 V4 서명 URL 생성
+    Cloud Run 등에서 프라이빗 키가 없을 경우, IAM Credentials SignBlob을 활용하기 위해
+    service_account_email을 전달할 수 있음.
+    """
+    try:
+        client = storage.Client()
+        bucket = client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(blob_name)
+        expires = timedelta(seconds=ttl_seconds or SIGNED_URL_TTL_SECONDS)
+        if SIGNED_URL_SA_EMAIL:
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=expires,
+                method="GET",
+                service_account_email=SIGNED_URL_SA_EMAIL,
+            )
+        else:
+            url = blob.generate_signed_url(version="v4", expiration=expires, method="GET")
+        return url
+    except Exception as e:
+        raise RuntimeError(f"Signed URL 생성 실패: {e}")
