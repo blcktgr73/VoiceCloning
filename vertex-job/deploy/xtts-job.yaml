@@ -1,0 +1,25 @@
+# xtts-job.yaml
+# Vertex AI Custom Job JobSpec-only YAML (gcloud ai custom-jobs create --config 용)
+workerPoolSpecs:
+  - machineSpec:
+      machineType: n1-standard-4
+      acceleratorType: NVIDIA_TESLA_T4
+      acceleratorCount: 1
+    replicaCount: 1
+    containerSpec:
+      imageUri: asia-northeast3-docker.pkg.dev/voicecloning-467122/vertex-job/vertex-job:latest
+      command: ["python3", "job/run_batch.py"]
+      args:
+        - "--user_id=testuser"
+        - "--text=안녕하세요"
+        - "--input_voice_gcs=voices/testuser/sample_034e3e52-7c7b-4609-9845-e8575ed56e11.wav"
+        - "--output_gcs=results/testuser/result.wav"
+      env:
+        - name: GCS_BUCKET_NAME
+          value: "voice-storage-asia3-seungbum1"
+        - name: VERTEX_PROJECT
+          value: "voicecloning-467122"
+        - name: VERTEX_JOB_NAME
+          value: "xtts-job-v1"
+        - name: COQUI_TOS_AGREED
+          value: "1"

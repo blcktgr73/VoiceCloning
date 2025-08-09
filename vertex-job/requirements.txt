@@ -1,0 +1,9 @@
+torch
+TTS>=0.21.0
+transformers<4.50
+google-cloud-storage
+python-multipart
+soundfile
+numpy
+scipy
+librosa
